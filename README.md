@@ -10,9 +10,9 @@
 
 
 사용자들의 리뷰 평점을 바탕으로 맛집을 추천해주는 Collaborative Filtering 기반 추천시스템  
-참고 : https://github.com/dns02023/Collaborative_Filtering_Recommender_System  
+https://github.com/dns02023/Collaborative_Filtering_Recommender_System  
 맛집들의 tag들을 바탕으로 유사한 맛집을 추천해주는 Content-based 추천시스템  
-참고 : https://github.com/dns02023/Content-based_Recommendation_by_Item_Tags  
+https://github.com/dns02023/Content-based_Recommendation_by_Item_Tags  
 
 
 
