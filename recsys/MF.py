@@ -1,7 +1,4 @@
 import numpy as np
-import pandas as pd
-
-
 
 class MatrixFactorization():
     def __init__(self, R, k, learning_rate, reg_param, epochs, verbose=False):
@@ -24,13 +21,16 @@ class MatrixFactorization():
         * _b (global bias): input R에서 평가가 매겨진 rating의 평균값을 global bias로 사용
         """
 
-        # init latent features
+        # latent feature 초기화
+        # 정규분포 내에서 랜덤 초기화
         self._P = np.random.normal(size=(self._num_users, self._k))
         self._Q = np.random.normal(size=(self._num_items, self._k))
 
-        # init biases
+        # bias 초기화
+        # user bias, item bias: 0으로 초기화
         self._b_P = np.zeros(self._num_users)
         self._b_Q = np.zeros(self._num_items)
+        # global bias: 전체 평균으로 초기화(존재하는 평가에 대해서)
         self._b = np.mean(self._R[np.where(self._R != 0)])
 
         # train while epochs
@@ -54,14 +54,17 @@ class MatrixFactorization():
     def cost(self):
         """
         MSE return
+        전체 cost 값구하기
         """
 
         # xi, yi: R[xi, yi]는 nonzero인 value를 의미한다.
-        # 참고: http://codepractice.tistory.com/90
         xi, yi = self._R.nonzero()
         #0이 아닌 값의 index를 반환 함.
         predicted = self.reconstruct()
         cost = 0
+
+        # R에서의 nonzero 값들이 바로 training 데이터인 개념
+        # => (실제값 - 예측값)^2을 각 평가(i,j)마다 수행
         for x, y in zip(xi, yi):
             cost += pow(self._R[x, y] - predicted[x, y], 2)
         return cost/len(xi)
@@ -105,6 +108,8 @@ class MatrixFactorization():
         i번째 유저가 j번째 아이템에 내릴 평점을 예측
         """
         #P, Q의 내적으로 비어있던 RATING값을 예측하고 global bias와 p, q 각각의 bias값들을 더해 준다.
+        #_b_P[i]: i번째 user의 bias
+        #_b_Q[j]: j번쨰 item의 bias
         return self._b + self._b_P[i] + self._b_Q[j] + self._P[i, :].dot(self._Q[j, :].T)
 
 
