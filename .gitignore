@@ -6,11 +6,11 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 media
+etl/migrations
+recommender/migrations
 .idea/
-recsys_restapi/settings.py
 api_secrets.json
 venv/*
-manage.py
 new_train_rating_data.csv
 real_place_data.csv
 train_rating_data.csv
