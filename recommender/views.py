@@ -95,7 +95,7 @@ class Train(views.APIView):
 
         matrix = ratings.values
 
-        mf_model = MF.MatrixFactorization(matrix, k=10, learning_rate=0.05, reg_param=0.01, epochs=10, verbose=True)
+        mf_model = MF.MatrixFactorization(matrix, k=10, learning_rate=0.05, reg_param=0.01, epochs=10, val_prop=0.2, tolerance=3)
         mf_model.fit()
         #mf_model.result()
         pred_matrix = mf_model.reconstruct()
