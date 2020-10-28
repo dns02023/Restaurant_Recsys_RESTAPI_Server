@@ -77,7 +77,7 @@ class MatrixFactorization():
                     if self._train_R[i, j] > 0:
                         # 논문: 'loops through all ratings in the training set' 구현
                         self.gradient_descent(i, j, self._train_R[i, j])
-            train_cost = self.cost()
+            train_cost = self.get_cost()
             # 5 epoch 마다 validate
             if (epoch % 5) == 0:
                 validation_cost = self.validate()
@@ -94,36 +94,6 @@ class MatrixFactorization():
 
         return self._training_process
 
-    def cost(self):
-        """
-        MSE return
-        전체 cost 값구하기
-        """
-
-        # xi, yi: R[xi, yi]는 nonzero인 value를 의미한다.
-        xi, yi = self._train_R.nonzero()
-        # 0이 아닌 값의 index를 반환 함.
-        predicted = self.reconstruct()
-        cost = 0
-
-        # R에서의 nonzero 값들이 바로 training 데이터인 개념
-        # => (실제값 - 예측값)^2을 각 평가(i,j)마다 수행
-        for x, y in zip(xi, yi):
-            cost += pow(self._train_R[x, y] - predicted[x, y], 2)
-        return cost / len(xi)
-
-    def gradient(self, error, i, j):
-        """
-        latent factor에 대한 gradient 계산
-        error: rating - prediction (실제값 - 예측값)
-        i: user index (i번째 유저)
-        j: item index (j번째 아이템)
-        """
-        # 논문 수식 참고
-        dp = (error * self._Q[j, :]) - (self._reg_param * self._P[i, :])
-        dq = (error * self._P[i, :]) - (self._reg_param * self._Q[j, :])
-        # error앞의 2는 생략
-        return dp, dq
 
     # i번째 유저와 j번째 아이템의 평점 하나에 대한 gradient
 
@@ -142,9 +112,44 @@ class MatrixFactorization():
         self._b_P[i] += self._learning_rate * (error - self._reg_param * self._b_P[i])
         self._b_Q[j] += self._learning_rate * (error - self._reg_param * self._b_Q[j])
 
-        dp, dq = self.gradient(error, i, j)
+        # RuntimeWarning: overflow encountered in multiply 에러 발생 따로 gradient 계산해주는 함수 구현해야 함
+        # self._P[i, :] += self._learning_rate * ((error * self._Q[j, :]) - (self._reg_param * self._P[i, :]))
+        # self._Q[j, :] += self._learning_rate * ((error * self._P[i, :]) - (self._reg_param * self._Q[j, :]))
+
+        dp, dq = self.get_gradient(error, i, j)
         self._P[i, :] += self._learning_rate * dp
         self._Q[j, :] += self._learning_rate * dq
+
+    def get_gradient(self, error, i, j):
+        """
+        latent factor에 대한 gradient 계산
+        error: rating - prediction (실제값 - 예측값)
+        i: user index (i번째 유저)
+        j: item index (j번째 아이템)
+        """
+        # 논문 수식 참고
+        dp = (error * self._Q[j, :]) - (self._reg_param * self._P[i, :])
+        dq = (error * self._P[i, :]) - (self._reg_param * self._Q[j, :])
+        # error앞의 2는 생략
+        return dp, dq
+
+    def get_cost(self):
+        """
+        MSE return
+        전체 cost 값구하기
+        """
+
+        # xi, yi: R[xi, yi]는 nonzero인 value를 의미한다.
+        xi, yi = self._train_R.nonzero()
+        # 0이 아닌 값의 index를 반환 함.
+        predicted = self.reconstruct()
+        cost = 0
+
+        # R에서의 nonzero 값들이 바로 training 데이터인 개념
+        # => (실제값 - 예측값)^2을 각 평가(i,j)마다 수행
+        for x, y in zip(xi, yi):
+            cost += pow(self._train_R[x, y] - predicted[x, y], 2)
+        return cost / len(xi)
 
     def get_prediction(self, i, j):
         """
