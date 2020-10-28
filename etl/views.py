@@ -13,7 +13,7 @@ import boto3
 from recsys_restapi.settings import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME
 
 # Create your views here.
-
+# 사용자가 리뷰를 남기면 => train DB에 적재하는 과정
 class ReviewETL(views.APIView):
     def post(self, request):
         request.POST._mutable = True
@@ -35,7 +35,7 @@ class ReviewETL(views.APIView):
 
         return Response(status=status.HTTP_200_OK)
 
-
+# train DB의 데이터들을 학습을 위해 전처리하여 csv 객체로 S3에 적재
 class TrainETL(views.APIView):
      def post(self, request):
          request.POST._mutable = True
