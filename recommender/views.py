@@ -59,6 +59,7 @@ class CBRecommend(views.APIView):
         idx = place_id - 1
 
         sim_scores = list(enumerate(cosine_sim[idx]))
+        # 유사도 순으로 정렬
         sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
 
         sim_scores = sim_scores[1:6]
@@ -127,9 +128,12 @@ class CFRecommend(views.APIView):
         temp = rating[rating['user_name'] == target].user_id.unique()
         if len(temp) == 0:
             return Response('No Review', status=status.HTTP_200_OK)
+
+        # 이미 사용자가 평가를 내린 맛집은 추천 안 함
         remove = rating[rating['user_id'] == temp[0]].place_id.unique()
         target_pred_rating = pred_matrix[temp[0] - 1]
 
+        # 추천 안해주기 위해서 미리 평점 0으로 만들기
         for i in range(len(target_pred_rating)):
             if (i + 1) in remove:
                 target_pred_rating[i] = 0
@@ -137,10 +141,13 @@ class CFRecommend(views.APIView):
         pred_list = list()
         for i in range(len(target_pred_rating)):
             buf = [i + 1, target_pred_rating[i]]
+            # [맛집 id, 예상 평점]
             pred_list.append(buf)
 
+        # 예상 평점 순으로 정렬
         pred_list.sort(key=lambda x: x[1], reverse=True)
         recommend_list = list()
+        # 추천해줄 맛집 id list
         for i in range(6):
             recommend_list.append(pred_list[i][0])
 
