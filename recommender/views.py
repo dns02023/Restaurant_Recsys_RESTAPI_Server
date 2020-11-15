@@ -45,19 +45,12 @@ class Similarity(views.APIView):
         return Response(status=status.HTTP_200_OK)
 
 class CBRecommend(views.APIView):
-    def post(self, request):
-        request.POST._mutable = True
-
-
+    def get(self, request, id):
         obj = s3_client.get_object(Bucket=AWS_STORAGE_BUCKET_NAME, Key='cosine_similarity.npy')
         cosine_sim = np.load(BytesIO(obj['Body'].read()))
 
         places = pd.read_csv("real_place_data.csv")
-
-        buffer = request.data.pop('id')
-        place_id = int(buffer[0])
-
-        idx = place_id - 1
+        idx = int(id) - 1
 
         sim_scores = list(enumerate(cosine_sim[idx]))
         # 유사도 순으로 정렬
@@ -105,6 +98,7 @@ class Train(views.APIView):
 
         return Response(status=status.HTTP_200_OK)
 
+# GET이 아니라 POST 인 이유? => 유저 닉네임을 인자로 받아야 하는데, GET을 사용하면, 보안상 안 좋을 것 같음
 class CFRecommend(views.APIView):
     def post(self, request):
         request.POST._mutable = True
