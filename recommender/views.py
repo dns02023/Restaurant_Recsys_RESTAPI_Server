@@ -11,6 +11,7 @@ from recsys import MF
 from io import BytesIO
 import boto3
 from recsys_restapi.settings import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME
+import heapq
 
 s3_resource = boto3.resource('s3',
                                      aws_access_key_id=AWS_ACCESS_KEY_ID,
@@ -89,16 +90,11 @@ class Train(views.APIView):
             columns='place_id',
             values='rating'
         ).fillna(0)
-        #여기서 사용하는 user_id와 place_id는 training 용 index개념
-        #특히 place_id는 db에 저장된, 즉, 위에서 similiarity를
-        #계산할때 쓰였던 place_id와 완전히 다름
-        #즉, 추천을 할때에 place_id를 받지 말고 place_name, user_name을 받아야 한다.
 
         matrix = ratings.values
 
         mf_model = MF.MatrixFactorization(matrix, k=10, learning_rate=0.05, reg_param=0.01, epochs=10, val_prop=0.2, tolerance=3)
         mf_model.fit()
-        #mf_model.result()
         pred_matrix = mf_model.reconstruct()
 
         bucket = AWS_STORAGE_BUCKET_NAME
@@ -106,8 +102,6 @@ class Train(views.APIView):
 
         np.save(npy_buffer, pred_matrix)
         s3_resource.Object(bucket, model_name).put(Body=npy_buffer.getvalue())
-
-        #데이터를 수집하고, 다시 train 할때 마다 place_name과 user_name이 새로 추가될 수도 있음
 
         return Response(status=status.HTTP_200_OK)
 
@@ -133,25 +127,21 @@ class CFRecommend(views.APIView):
         remove = rating[rating['user_id'] == temp[0]].place_id.unique()
         target_pred_rating = pred_matrix[temp[0] - 1]
 
-        # 추천 안해주기 위해서 미리 평점 0으로 만들기
+        recommend_list = list()
         for i in range(len(target_pred_rating)):
             if (i + 1) in remove:
-                target_pred_rating[i] = 0
+                continue
+            else:
+                if len(recommend_list) < 6:
+                    heapq.heappush(recommend_list, (target_pred_rating[i], i + 1))
+                else:
+                    if recommend_list[0][0] < target_pred_rating[i]:
+                        heapq.heappop(recommend_list)
+                        heapq.heappush(recommend_list, (target_pred_rating[i], i + 1))
 
-        pred_list = list()
-        for i in range(len(target_pred_rating)):
-            buf = [i + 1, target_pred_rating[i]]
-            # [맛집 id, 예상 평점]
-            pred_list.append(buf)
+        response_list = [recommend_list[i][1] for i in range(len(recommend_list))]
+        return Response(response_list, status=status.HTTP_200_OK)
 
-        # 예상 평점 순으로 정렬
-        pred_list.sort(key=lambda x: x[1], reverse=True)
-        recommend_list = list()
-        # 추천해줄 맛집 id list
-        for i in range(6):
-            recommend_list.append(pred_list[i][0])
-
-        return Response(recommend_list, status=status.HTTP_200_OK)
 
 
 
